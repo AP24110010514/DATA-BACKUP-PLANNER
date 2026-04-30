@@ -1,0 +1,42 @@
+#include <iostream>
+#include <filesystem>
+#include <chrono>
+#include <thread>
+
+namespace fs = std::filesystem;
+
+void copy_all(const fs::path& source, const fs::path& destination) {
+    if (!fs::exists(source)) return;
+    fs::create_directories(destination);
+    for (const auto& entry : fs::recursive_directory_iterator(source)) {
+        const auto& path = entry.path();
+        auto relative = fs::relative(path, source);
+        auto dest = destination / relative;
+        if (fs::is_directory(path)) {
+            fs::create_directories(dest);
+        } else if (fs::is_regular_file(path)) {
+            fs::copy_file(path, dest, fs::copy_options::overwrite_existing);
+        }
+    }
+}
+
+int main() {
+    std::string source, destination;
+    int interval;
+
+    std::cout << "Enter source directory: ";
+    std::cin >> source;
+    std::cout << "Enter destination directory: ";
+    std::cin >> destination;
+    std::cout << "Enter backup interval (seconds): ";
+    std::cin >> interval;
+
+    while (true) {
+        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::cout << "Backing up at: " << std::ctime(&now);
+        copy_all(source, destination);
+        std::this_thread::sleep_for(std::chrono::seconds(interval));
+    }
+
+    return 0;
+}
